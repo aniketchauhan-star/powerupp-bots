@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  ASSET GALLERY  —  a visible preview of every uploaded asset in this project.
+  Open this file directly (double-click) to SEE all your assets in one place:
+  image thumbnails, playable video clips, and audio players, each labelled with
+  its filename and where it is used in the flipbook.
+  This page is separate from the flipbook (index.html) and does not affect it.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Power Up, Bots! — Asset Gallery</title>
+<style>
+  :root {
+    --bg: #0b1030; --bg2: #141a45; --card: #1b2150; --edge: rgba(150,200,255,0.18);
+    --text: #eaf0ff; --muted: #9fb0e0; --accent: #7db8ff; --accent2: #b58cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(126,95,208,0.30) 0%, transparent 55%),
+      linear-gradient(170deg, var(--bg) 0%, var(--bg2) 100%);
+    background-attachment: fixed;
+    padding: 32px clamp(16px, 4vw, 48px) 64px;
+  }
+  header { max-width: 1200px; margin: 0 auto 28px; }
+  h1 {
+    font-size: clamp(24px, 4vw, 40px); margin: 0 0 6px;
+    background: linear-gradient(90deg, #ffd23f, var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { color: var(--muted); font-size: 15px; margin: 0; }
+  .count { color: var(--accent); font-weight: 700; }
+  h2 {
+    max-width: 1200px; margin: 40px auto 14px; font-size: 18px; letter-spacing: 0.4px;
+    color: var(--accent); border-bottom: 1px solid var(--edge); padding-bottom: 8px;
+  }
+  .grid {
+    max-width: 1200px; margin: 0 auto;
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--edge); border-radius: 14px;
+    overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+  }
+  .thumb {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    background: repeating-conic-gradient(#20264f 0% 25%, #171d42 0% 50%) 50% / 24px 24px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .thumb.tall { aspect-ratio: 4 / 5; }
+  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .thumb.audio {
+    background: linear-gradient(135deg, #2a2170, #1b2150);
+    flex-direction: column; gap: 12px; padding: 16px;
+  }
+  .thumb.audio .note { font-size: 40px; }
+  .thumb.audio audio { width: 100%; }
+  .meta { padding: 11px 13px 13px; }
+  .fname { font-size: 14px; font-weight: 600; word-break: break-all; }
+  .role { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .tag {
+    display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: #0b1030; background: var(--accent); border-radius: 999px; padding: 2px 8px; margin-top: 8px; font-weight: 700;
+  }
+  .tag.vid { background: #7db8ff; } .tag.img { background: #ffd23f; } .tag.aud { background: #b58cff; }
+  .missing { border-color: #b04a5a; }
+  .missing .fname::after { content: " — not found?"; color: #ff9db0; font-weight: 400; font-size: 11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Power Up, Bots! — Asset Gallery</h1>
+  <p class="sub"><span class="count" id="count">0</span> uploaded assets. Videos &amp; audio have play controls; hover a card to preview. This page is just a viewer — the flipbook lives in <b>index.html</b>.</p>
+</header>
+
+<h2>🎬 Page videos (14)</h2>
+<div class="grid">
+  <div class="card"><div class="thumb"><video src="assets/1.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">1.mp4</div><div class="role">Page 1</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/2.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">2.mp4</div><div class="role">Page 2</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/3.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">3.mp4</div><div class="role">Page 3</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/4.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">4.mp4</div><div class="role">Page 4</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/5(rectangle).mp4" preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">5(rectangle).mp4</div><div class="role">Page 5 · rectangle tap</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/5(green).mp4"     preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">5(green).mp4</div><div class="role">Page 5 · green tap</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/5(circle).mp4"    preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">5(circle).mp4</div><div class="role">Page 5 · circle tap</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/6.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">6.mp4</div><div class="role">Page 6</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/7.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">7.mp4</div><div class="role">Page 7 · intro</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/7(2).mp4"         preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">7(2).mp4</div><div class="role">Page 7 · reveal (tap)</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/8.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">8.mp4</div><div class="role">Page 8 · intro</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/9.mp4"            preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">9.mp4</div><div class="role">Page 8 · reveal (tap)</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/10.mp4"           preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">10.mp4</div><div class="role">Page 10</div><span class="tag vid">video</span></div></div>
+  <div class="card"><div class="thumb"><video src="assets/11.mp4"           preload="metadata" controls muted playsinline></video></div><div class="meta"><div class="fname">11.mp4</div><div class="role">Page 11</div><span class="tag vid">video</span></div></div>
+</div>
+
+<h2>🖼️ Images (5)</h2>
+<div class="grid">
+  <div class="card"><div class="thumb"><img src="assets/coverpage.png"   alt="cover" /></div><div class="meta"><div class="fname">coverpage.png</div><div class="role">Book cover art</div><span class="tag img">image</span></div></div>
+  <div class="card"><div class="thumb"><img src="assets/7(1).png"        alt="page 7 still" /></div><div class="meta"><div class="fname">7(1).png</div><div class="role">Page 7 · still frame</div><span class="tag img">image</span></div></div>
+  <div class="card"><div class="thumb"><img src="assets/5.png"           alt="page 5 shelf" /></div><div class="meta"><div class="fname">5.png</div><div class="role">Page 5 shelf (currently unused)</div><span class="tag img">image</span></div></div>
+  <div class="card"><div class="thumb tall"><img src="assets/handNudge.webp" alt="hand nudge" /></div><div class="meta"><div class="fname">handNudge.webp</div><div class="role">Guiding hand nudge</div><span class="tag img">image</span></div></div>
+  <div class="card"><div class="thumb"><img src="assets/play%20button.png" alt="play button" /></div><div class="meta"><div class="fname">play button.png</div><div class="role">Cover play button</div><span class="tag img">image</span></div></div>
+</div>
+
+<h2>🔊 Sound (2)</h2>
+<div class="grid">
+  <div class="card"><div class="thumb audio"><div class="note">🎵</div><audio src="sfx/Page%20flip.mp3"       preload="none" controls></audio></div><div class="meta"><div class="fname">sfx/Page flip.mp3</div><div class="role">Page-flip sound</div><span class="tag aud">audio</span></div></div>
+  <div class="card"><div class="thumb audio"><div class="note">🎵</div><audio src="sfx/cover%20page%20flip.mp3" preload="none" controls></audio></div><div class="meta"><div class="fname">sfx/cover page flip.mp3</div><div class="role">Cover-open sound</div><span class="tag aud">audio</span></div></div>
+</div>
+
+<script>
+  // Count the cards, and flag any asset that fails to load (so you can spot missing files).
+  document.getElementById("count").textContent = document.querySelectorAll(".card").length;
+  document.querySelectorAll("img, video, audio").forEach(function (el) {
+    el.addEventListener("error", function () {
+      var card = el.closest(".card"); if (card) card.classList.add("missing");
+    }, true);
+  });
+</script>
+</body>
+</html>
