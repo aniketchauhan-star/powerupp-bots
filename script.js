@@ -87,7 +87,7 @@ const pages = [
     reveal: "assets/7(2).mp4",                         // plays when the pink rectangle is tapped
     hotspot: {
       box:  { left: "3.5%", top: "11%", width: "14%", height: "16%" },   // first pink rectangle
-      hand: { left: "10.5%", top: "19%" },                               // hand on that rectangle
+      hand: { left: "10.5%", top: "15%" },                               // hand on that rectangle (fingertip in the middle of the pink box)
     },
   },
   {                                                  // 8 — INTRO video (pauses) → tap pink → REVEAL video
