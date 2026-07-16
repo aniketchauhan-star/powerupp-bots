@@ -16,8 +16,8 @@
     --accent-2:   #f6b81e;   /* moon-gold (matches "Story") */
     --tape:       rgba(255, 210, 90, 0.60);   /* warm gold washi-tape */
     --page-edge:  #d9c8a2;   /* page-stack edge colour (parchment) */
-    --page-back:   #cb9d83;  /* BACK of a page + the right-side page stack (warm tan) */
-    --page-back-2: #b3805f;  /* deeper tan for the stack edges / gradient shading */
+    --page-back:   #86a8f2;  /* BACK of a page + the right-side page stack (light periwinkle blue) */
+    --page-back-2: #6b8fe0;  /* deeper blue for the stack edges / gradient shading */
 
     /* Fonts */
     --font-head: "Fredoka", system-ui, sans-serif;

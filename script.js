@@ -957,10 +957,32 @@ function runOpenSequence() {
   }, COVER_OPEN_MS + 50);
   updateProgress();
 }
+/* ---- Enter / leave TRUE browser fullscreen. Requested straight from the Play
+   tap (a user gesture, required by the Fullscreen API) so every page after the
+   cover fills the whole screen. Vendor-prefixed for Safari; silently ignored
+   where fullscreen is unsupported (e.g. iPhone Safari has no element FS). ---- */
+function goFullscreen() {
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen ||
+              el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (!req) return;
+  try { const p = req.call(el); if (p && p.catch) p.catch(function () {}); } catch (_) {}
+}
+function exitFullscreen() {
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement ||
+               document.mozFullScreenElement || document.msFullscreenElement;
+  if (!fsEl) return;
+  const exit = document.exitFullscreen || document.webkitExitFullscreen ||
+               document.mozCancelFullScreen || document.msExitFullscreen;
+  if (!exit) return;
+  try { const p = exit.call(document); if (p && p.catch) p.catch(function () {}); } catch (_) {}
+}
+
 function openBook() {
   console.log("[The Story Night] openBook() called — opened was:", opened);
   if (opened) return;
   opened = true;
+  goFullscreen();          // from the next page on, run in full screen
   runOpenSequence();
 }
 
@@ -988,6 +1010,7 @@ function resetToStart() {
   hideFlipHint(); clearTimeout(idleHintTimer); clearTimeout(nudgeHideTimer);
   if (homeBtn) homeBtn.classList.remove("show");
   try { bgMusic.pause(); bgMusic.currentTime = 0; } catch (_) {}   // stop music; restarts on Play
+  exitFullscreen();                            // back to the cover → leave full screen
   updateProgress();                            // hides the progress read-out (not opened)
 }
 
