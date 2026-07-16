@@ -66,7 +66,7 @@ const pages = [
     src: "assets/5.png",                             // static shelf — always behind
     steps: [
       { key: "rectangle", src: "assets/5(rectangle).mp4",                 // pink rectangles (top shelf)
-        box:  { left: "33%", top: "22%", width: "34%", height: "17%" },
+        box:  { left: "33%", top: "27%", width: "34%", height: "17%" },
         hand: { left: "50%", top: "27%" } },                              // hand on the pink shape
       { key: "green", src: "assets/5(green).mp4",                          // green squares (middle shelf)
         box:  { left: "34%", top: "45%", width: "30%", height: "19%" },
@@ -98,7 +98,7 @@ const pages = [
     intro:  "assets/8.mp4",
     reveal: "assets/9.mp4",
     hotspot: {
-      box:  { left: "4.5%", top: "23%", width: "18%", height: "14%" },   // pink rectangle (top-left shelf)
+      box:  { left: "4.5%", top: "24%", width: "18%", height: "14%" },   // pink rectangle (top-left shelf)
       hand: { left: "13.5%", top: "26%" },
     },
   },
