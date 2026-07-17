@@ -147,7 +147,21 @@
 <button class="arrow prev" id="prev" aria-label="Previous page">‹</button>
 <button class="arrow next" id="next" aria-label="Next page">›</button>
 
-<!-- (The embedded LBD game has been removed — this is a plain 2-page flipbook.) -->
+<!-- ============================================================================
+     EMBEDDED GAME OVERLAY — "Power Up, Bots!" halves game (after the video-10 page).
+     A BODY-LEVEL iframe (deliberately NOT inside the 3D book): a CSS transform on
+     .flip-scale would trap position:fixed, so true fullscreen must live out here.
+     • Landing on the game page opens this OVER the whole screen (see script.js →
+       updateLbdOverlay / setLbdFullscreen).
+     • When the game posts that it's complete, the overlay shrinks away and the book
+       auto-turns to the next page (see the "message" listener in script.js).
+     Styling: styles.css → .lbd-stage / .lbd-stage.fullscreen / #lbdFrame.
+     ============================================================================ -->
+<div class="lbd-stage" id="lbdStage" aria-hidden="true">
+  <iframe id="lbdFrame" title="Power Up, Bots! — game"
+          allow="autoplay; fullscreen"
+          allowfullscreen></iframe>
+</div>
 
 <!-- ============================================================================
      ASSET MANIFEST  —  every uploaded asset, referenced here so it is visible in

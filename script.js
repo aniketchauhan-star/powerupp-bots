@@ -103,6 +103,15 @@ const pages = [
     },
   },
   { type: "video", src: "assets/10.mp4" },           // 10
+  {                                                  // GAME — Power Up, Bots! (opens FULLSCREEN)
+    // Interactive "halves" game. It is NOT printed inside the book: landing on this
+    // page opens it as a full-screen overlay iframe. When the game finishes it shrinks
+    // away and the book AUTO-turns to the next page (11.mp4). The poster is the game's
+    // own start screen — seen on the leaf during the page-turn, just before it opens.
+    type: "lbd",
+    src:    "PowerUp-Bots-main/PowerUpBots/story/index.html",
+    poster: "PowerUp-Bots-main/PowerUpBots/story/assets/GameStartScreen.png",
+  },
   { type: "video", src: "assets/11.mp4" },           // 11
   { type: "end" },                                   // 12 — THE END page (cream) + Replay
 ];
@@ -645,6 +654,8 @@ let lbdFullscreen = false;   // is the overlay expanded to full screen right now
 let lbdStarted    = false;   // has the child tapped Start at least once this visit?
 let lbdWasOn      = false;   // was the overlay showing on the previous refresh?
 let lbdExiting    = false;   // guard so "complete" only advances once
+let lbdAutoExitTimer = null; // pending "celebration shown → auto-advance" timer
+const LBD_CELEBRATE_MS = 3600;  // let the "Bots Powered Up!" screen show before auto-advancing
 
 // Show the blurred pre-LBD backdrop inside the frame while the game is loading
 // (and while it's unloaded) so there is no dark flash — it matches the game's
@@ -695,16 +706,26 @@ function updateLbdOverlay() {
   const onLbd = opened && ready && !animating && flipped === LBD_INDEX;
   if (onLbd) {
     ensureLbdLoaded();                    // load only now → sound starts when you REACH the page
-    if (!lbdFullscreen) positionLbdStage();
     lbdStage.classList.add("visible");
     lbdStage.setAttribute("aria-hidden", "false");
     lbdWasOn = true;
+    lbdExiting = false;                   // fresh arrival → a future "complete" may advance again
+    clearTimeout(lbdAutoExitTimer);       // clear any stale auto-advance from a previous visit
+    // The book's background music is the SAME theme track the game plays, so pause
+    // the book's copy while the game is on screen — the game plays its own theme.
+    try { if (typeof bgMusic !== "undefined") bgMusic.pause(); } catch (_) {}
+    // Per request: the game opens FULLSCREEN the moment you flip to it (it is never
+    // shown printed inside the book). setLbdFullscreen grows it from the page rect to
+    // fill the whole viewport.
+    if (!lbdFullscreen) setLbdFullscreen(true);
   } else if (!lbdFullscreen) {           // never hide mid-game (we can't leave while fullscreen)
     lbdStage.classList.remove("visible");
     lbdStage.setAttribute("aria-hidden", "true");
     if (lbdWasOn) {
       lbdWasOn = false;
+      clearTimeout(lbdAutoExitTimer);     // drop any pending auto-advance
       resetLbd();                         // unload → stops all game audio immediately + fresh next visit
+      if (opened && !muted) playBgMusic();  // resume the book's background music after the game
     }
   }
 }
@@ -713,18 +734,29 @@ function updateLbdOverlay() {
 function exitLbd() {
   if (lbdExiting) return;
   lbdExiting = true;
+  clearTimeout(lbdAutoExitTimer);         // this exit supersedes any pending auto-advance
   setLbdFullscreen(false);                // shrink the game back into the page
   setTimeout(function () {
     lbdExiting = false;
     if (flipped === LBD_INDEX) goNext();  // auto-advance to the next story page
   }, 470);                                // just after the shrink transition (.4s)
 }
-// Listen for the game's messages (start → fullscreen, complete → advance).
+// Listen for the game's messages.
+//   • lbd-start        → expand to full screen (legacy path; we now open fullscreen
+//                        on arrival, so this is only a safety net).
+//   • activity_complete→ the game reached its "Bots Powered Up!" celebration. Let it
+//                        show for a beat, then shrink the game away + turn the page.
+//   • lbd-complete     → the game's "Next" button was tapped → advance immediately.
 window.addEventListener("message", function (e) {
   const d = e && e.data;
-  if (!d || d.source !== "lbd") return;
-  if (d.type === "lbd-start") { lbdStarted = true; setLbdFullscreen(true); }
-  else if (d.type === "lbd-complete") { exitLbd(); }
+  if (!d) return;
+  const t = d.type;
+  if (d.source === "lbd" && t === "lbd-start") { lbdStarted = true; setLbdFullscreen(true); }
+  else if (t === "lbd-complete") { clearTimeout(lbdAutoExitTimer); exitLbd(); }
+  else if (t === "activity_complete" && lbdFullscreen) {
+    clearTimeout(lbdAutoExitTimer);
+    lbdAutoExitTimer = setTimeout(exitLbd, LBD_CELEBRATE_MS);
+  }
 });
 
 let opened = false;      // has the cover been opened?
@@ -1243,8 +1275,9 @@ window.addEventListener("orientationchange", onViewportChange);
 
 /* ==========================================================================
    SOUND  —  real audio files in sfx/: Page flip.mp3 (every page flip),
-   cover page flip.mp3 (the cover opening), and BG Music.mp3 (looping background
-   music at 40% volume). All muted until the book is opened (a user gesture).
+   cover page flip.mp3 (the cover opening), and the game's ThemeMusic.mp3 as the
+   looping background music at 20% volume. All muted until the book is opened
+   (a user gesture).
    ========================================================================== */
 let muted = true;
 
@@ -1279,9 +1312,11 @@ window.addEventListener("keydown",     _titleGesture, true);
 window.addEventListener("touchstart",  _titleGesture, true);
 playTitleVo();   // try to autoplay the moment the flipbook loads
 
-// Looping BACKGROUND MUSIC at 40% volume. Started on open (a user gesture) so
-// the browser allows it to play with sound.
-const bgMusic = new Audio("sfx/BG%20Music.mp3");
+// Looping BACKGROUND MUSIC — the SAME theme track the "Power Up, Bots!" game uses,
+// at 20% volume. Started on open (a user gesture) so the browser allows it with sound.
+// (While the game overlay is on screen we PAUSE this copy so the game's own theme
+// isn't doubled/echoed — see updateLbdOverlay.)
+const bgMusic = new Audio("PowerUp-Bots-main/PowerUpBots/story/audios/ThemeMusic.mp3");
 bgMusic.loop = true;
 bgMusic.volume = 0.20;                      // 20% volume, per request
 bgMusic.preload = "auto";

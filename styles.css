@@ -937,6 +937,8 @@
   }
   /* While the game is full screen, get the book chrome out of the way. */
   body.lbd-fullscreen .corner-arrow,
+  body.lbd-fullscreen .home-btn,
+  body.lbd-fullscreen .flip-hint,
   body.lbd-fullscreen .toolbar { display: none !important; }
 
   /* ---- Speech bubble (SVG) --------------------------------------------------
