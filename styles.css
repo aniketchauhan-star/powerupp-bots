@@ -11,18 +11,15 @@
     --cover:      #2b3468;   /* frame/cover base — midnight blue */
     --cover-2:    #1b2247;   /* deeper night blue */
     --cover-3:    #0e1330;   /* deepest blue (spine) */
-    --cover-edge: #070a1e;   /* binding edge — near-black night */
-    --accent:     #7d5fd0;   /* page-title purple (matches "Night") */
-    --accent-2:   #f6b81e;   /* moon-gold (matches "Story") */
-    --tape:       rgba(255, 210, 90, 0.60);   /* warm gold washi-tape */
+    --accent-2:   #f6b81e;   /* moon-gold (arrows + home) */
     --page-edge:  #d9c8a2;   /* page-stack edge colour (parchment) */
     --page-back:   #86a8f2;  /* BACK of a page + the right-side page stack (light periwinkle blue) */
     --page-back-2: #6b8fe0;  /* deeper blue for the stack edges / gradient shading */
 
     /* Fonts */
+    /* Single webfont: Fredoka 600/700 (all visible text uses it). The old
+       Patrick Hand / Caveat requests were trimmed — no rendered text used them. */
     --font-head: "Fredoka", system-ui, sans-serif;
-    --font-hand: "Patrick Hand", "Comic Sans MS", cursive;
-    --font-note: "Caveat", cursive;
 
     /* The book's physical thickness (depth of the page block) */
     --thick: clamp(22px, 3.4vw, 48px);
@@ -50,7 +47,7 @@
   body {
     min-height: 100svh;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-hand); color: var(--ink);
+    font-family: var(--font-head); color: var(--ink);
     /* Clean, futuristic, kid-friendly backdrop — a calm deep-space gradient with a
        soft violet aura behind the book and a cool floor glow. No stars / clutter. */
     background:
@@ -146,32 +143,34 @@
      no rounded pill. Only the arrow glyph shows, same position/size, clickable. */
   /* Flip arrows OUTSIDE the book, fixed at the viewport's bottom corners. */
   .corner-arrow {
-    position: fixed; bottom: clamp(-16px, -0.9vh, -6px); z-index: 700;  /* nudged a bit lower */
-    width: clamp(52px, 6vw, 70px); height: clamp(52px, 6vw, 70px);
+    position: fixed; bottom: clamp(-10px, -0.5vh, -2px); z-index: 700;
+    width: clamp(84px, 10vw, 124px); height: clamp(84px, 10vw, 124px);  /* big, kid-friendly tap targets */
     border: none; background: none; color: var(--accent-2);   /* moon-gold: visible on the night bg */
     filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55));           /* legible over any page */
     display: none; align-items: center; justify-content: center;
     cursor: pointer; opacity: 0;
-    transition: opacity 400ms ease, transform 150ms ease;
+    transition: opacity 400ms ease, transform 150ms ease;      /* ~400ms fade-in once reading starts */
   }
   body.is-open .corner-arrow { display: flex; opacity: 0.96; }
 
-  /* HOME button — top-left, moon-gold like the arrows. JS toggles .show (only
-     while reading; hidden on the cover, the last page and the end). */
+  /* HOME button — top-RIGHT, moon-gold like the arrows and the SAME box size,
+     so all three read as one control set. Lifted (negative top) so the glyph
+     clears the content frame's corner. JS toggles .show (only while reading;
+     hidden on the cover, the last page and the end). */
   .home-btn {
-    position: fixed; top: clamp(2px, 0.6vh, 8px); right: clamp(8px, 1.6vw, 22px); z-index: 720;
-    width: clamp(40px, 4.6vw, 56px); height: clamp(40px, 4.6vw, 56px);
+    position: fixed; top: clamp(-12px, -0.9vh, -4px); right: clamp(8px, 1.6vw, 22px); z-index: 720;
+    width: clamp(84px, 10vw, 124px); height: clamp(84px, 10vw, 124px);
     border: none; background: none; color: var(--accent-2);
     filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55));
     display: none; align-items: center; justify-content: center;
     cursor: pointer; opacity: 0; padding: 0;
-    transition: opacity 360ms ease, transform 150ms ease;
+    transition: opacity 400ms ease, transform 150ms ease;
   }
   .home-btn.show   { display: flex; opacity: 0.96; }
-  .home-btn:hover  { transform: scale(1.1); }
+  .home-btn:hover  { transform: scale(1.12); }
   .home-btn:active { transform: scale(0.9); }
-  .home-btn:focus, .home-btn:focus-visible { outline: none; }
-  .home-btn svg { width: 92%; height: 92%; }
+  .home-btn:focus, .home-btn:focus-visible { outline: none; box-shadow: none; }
+  .home-btn svg { width: 65%; height: 65%; }   /* visual weight matched to the 62% arrows */
 
   /* While the viewport is actively resizing / the resolution is changing, freeze
      the page-turn transitions so the book can't appear to auto-flip (JS adds
@@ -186,17 +185,21 @@
      around the arrow. (Flipping still works via keys, drag, and the arrows.) */
   .corner-arrow:focus,
   .corner-arrow:focus-visible { outline: none; box-shadow: none; }
-  .corner-arrow[disabled] { opacity: 0.22; pointer-events: none; }
+  /* body.is-open variant included so this OUTRANKS `body.is-open .corner-arrow`
+     (0,2,1) — without it the 0.96 reading opacity would win over the disabled
+     look and a gated/disabled arrow would render at full brightness. */
+  .corner-arrow[disabled],
+  body.is-open .corner-arrow[disabled] { opacity: 0.22; pointer-events: none; }
   .corner-arrow.back { left: clamp(12px, 2.5vw, 34px); }
   .corner-arrow.fwd  { right: clamp(12px, 2.5vw, 34px); }
-  .corner-arrow svg  { width: 58%; height: 58%; }
+  .corner-arrow svg  { width: 62%; height: 62%; }     /* glyph fills 62% of the box */
   .corner-arrow.back svg { transform: scaleX(-1); }   /* mirror the forward arrow */
 
   /* ---- Page-turn hint (hand on the RIGHT side of the book) -------------------
      Guidance for HOW to turn the page: a 3D hand on the book's right edge does a
      right-to-left SWIPE, shown together with the "ghost" page-flip. JS positions
      it against the book's right side (see positionFlipHint) and toggles .show.
-     Drop your art at assets/hand-nudge.png; until then an emoji hand is used. */
+     Art: assets/handNudge.webp; if it fails to load an emoji hand is used. */
   .flip-hint {
     position: fixed; z-index: 720; pointer-events: none;
     width: clamp(56px, 7vw, 104px); height: auto;   /* JS sets an inline width per page */
@@ -281,8 +284,6 @@
   .replay-btn:focus, .replay-btn:focus-visible { outline: none; }
   .replay-btn svg { width: clamp(26px, 2.6vw, 34px); height: clamp(26px, 2.6vw, 34px); fill: #3a2408; }
 
-  /* The old fixed side-arrows are replaced by the corner arrows above. */
-  .arrow { display: none !important; }
 
   /* Soft drop shadow on the "floor" beneath the book — grows as it opens */
   .floor-shadow {
@@ -401,24 +402,9 @@
   }
   .book.open .page-base { opacity: 1; transition: opacity 560ms ease 360ms; }
 
-  /* Inside-front-cover bookplate (the left page at the very start) */
-  .bookplate {
-    position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 12%;
-  }
-  .bookplate .line { font-family: var(--font-note); font-size: clamp(18px, 2.8vw, 32px); color: var(--ink); }
-  .bookplate .name-line { border-bottom: 3px dotted var(--accent); min-width: 62%; margin-top: 4px; }
-
-  /* "The End" note shown on the right base once every page is turned */
-  .end-note {
-    position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 8px; text-align: center;
-    padding: 12%; opacity: 0; transition: opacity 400ms ease 200ms; pointer-events: none;
-  }
-  .book.at-end .end-note { opacity: 1; }
-  .end-note .big { font-family: var(--font-head); font-weight: 700;
-                   font-size: clamp(22px, 3.4vw, 46px); color: var(--cover-2); }
-  .end-note .small { font-family: var(--font-note); font-size: clamp(16px, 2.4vw, 26px); }
+  /* (The old .bookplate / .end-note blocks were removed: no markup or JS ever
+     created them — THE END is a real page built in script.js. They were also
+     the only users of the Caveat webfont, which is no longer requested.) */
 
   /* ==========================================================================
      THE 3D PAGE BLOCK  —  a real cuboid giving the closed book its thickness.
@@ -588,7 +574,7 @@
   /* The cover ART — near full-bleed on the dark bezel, softly rounded like a screen. */
   .cover .front .cover-img {
     position: absolute; inset: 16px; z-index: 0; border-radius: 14px;
-    background: url("assets/coverpage.png") center / cover no-repeat;
+    background: url("assets/coverpage.webp") center / cover no-repeat;
     box-shadow: 0 0 0 1px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04);
   }
   /* Clean FUTURISTIC frame — a slim glowing neon edge (cyan→violet) sitting on the
@@ -642,30 +628,10 @@
   /* The cream page-stack fore-edge is hidden — on the dark night cover it read as a
      white line down the right edge. The book's thickness now comes only from the
      (darkened) page-block behind the cover. */
-  .cover .front .fore-edge { display: none; }
-  .cover .title {
-    font-family: var(--font-head); font-weight: 700; line-height: 1.02;
-    font-size: clamp(24px, 4.4vw, 58px);
-    text-shadow: 0 3px 0 rgba(0,0,0,0.14);
-  }
-  .cover .subtitle {
-    font-family: var(--font-note); font-size: clamp(17px, 2.8vw, 32px); opacity: 0.96;
-  }
-  /* A taped-on keepsake photo (a random kid avatar) — reinforces the scrapbook look */
-  .cover .cover-photo {
-    position: relative; background: #fff; padding: 7px 7px 12px;
-    border-radius: 4px; transform: rotate(-5deg);
-    box-shadow: 0 8px 18px rgba(0,0,0,0.28);
-  }
-  .cover .cover-photo img {
-    display: block; width: clamp(64px, 12vw, 128px); height: clamp(64px, 12vw, 128px);
-    object-fit: cover; border-radius: 3px; background: #eee;
-  }
-  .cover .cover-photo .tape {
-    position: absolute; top: -11px; left: 50%; width: 60px; height: 22px;
-    transform: translateX(-50%) rotate(-3deg);
-    background: var(--tape); box-shadow: 0 1px 3px rgba(0,0,0,0.14);
-  }
+  /* (Dead rules removed: .cover .title/.subtitle/.cover-photo/.tape/.fore-edge
+     and the back-cover .line/.name-line came from an older text-based cover —
+     today's cover is one full-bleed artwork + the Play button, and the back of
+     the front cover is intentionally a blank board.) */
   /* Back of the cover (revealed on the left once the book is open) — SOLID blue,
      matching the cover theme. */
   .cover .back {
@@ -677,11 +643,9 @@
     box-shadow: inset 14px 0 26px -14px rgba(0,0,0,0.30),   /* spine-side shade */
                 inset 0 0 0 2px rgba(255,255,255,0.06);
   }
-  .cover .back .line { font-family: var(--font-note); font-size: clamp(18px, 2.8vw, 32px); color: rgba(255,255,255,0.92); }
-  .cover .back .name-line { border-bottom: 3px dotted rgba(255,255,255,0.7); min-width: 62%; margin-top: 4px; }
 
-  /* PLAY button — the user's own artwork (assets/play button.png). The button is a
-     transparent, correctly-sized hit target; the PNG (which already carries its own
+  /* PLAY button — the user's own artwork (assets/play button.webp). The button is a
+     transparent, correctly-sized hit target; the image (which already carries its own
      neon glow) fills it and gently "breathes" to draw the eye. Sits low-centre. */
   .play-btn {
     position: absolute; left: 51%; top: 70%; transform: translate(-50%, -50%);
@@ -708,6 +672,48 @@
   }
 
   /* ==========================================================================
+     LOADING BAR  —  every asset (flipbook media + the embedded game's files)
+     is fetched behind this bar BEFORE the Play button appears (preloader.js).
+     It sits exactly where the Play button lives; at 100% it hides and the
+     Play artwork pops in.
+     ========================================================================== */
+  body.preloading .play-btn { opacity: 0; pointer-events: none; animation: none; }
+  /* Pop-in scales the INNER image so it can't fight the button's own
+     breathe / press transforms. */
+  body:not(.preloading) .play-btn .play-img {
+    animation: playPop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes playPop {
+    0%   { transform: scale(0.55); opacity: 0; }
+    70%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+  }
+  .load-bar {
+    position: absolute; left: 51%; top: 70%; transform: translate(-50%, -50%);
+    z-index: 3; width: clamp(180px, 24vw, 300px); text-align: center;
+    pointer-events: none;
+  }
+  .load-bar-track {
+    height: clamp(10px, 1.4vw, 14px); border-radius: 999px;
+    background: rgba(10, 15, 45, 0.65);
+    border: 2px solid rgba(255, 210, 63, 0.55);          /* moon-gold, matches the arrows */
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45), inset 0 1px 3px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .load-bar-fill {
+    width: 0%; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #ffd23f, #ffb42e);
+    box-shadow: 0 0 10px rgba(255, 210, 63, 0.8);
+    transition: width 180ms linear;
+  }
+  .load-bar-text {
+    margin-top: 8px; font-family: var(--font-head); font-weight: 600;
+    font-size: clamp(13px, 1.7vw, 17px); color: #ffe9a8;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6); letter-spacing: 0.5px;
+  }
+  body:not(.preloading) .load-bar { display: none; }
+
+  /* ==========================================================================
      PAGES (leaves)  —  each sheet flips on the CENTRE spine in 3D.
      Leaves live in a FLAT stacking context (#leaves) so classic z-index
      re-stacking works reliably during a turn.
@@ -731,6 +737,30 @@
     will-change: transform;
   }
   .leaf.flipped { transform: rotateY(-180deg); }
+
+  /* ---- GPU WINDOWING ---------------------------------------------------------
+     Every leaf is a composited layer (3D transform + will-change), and a dozen
+     leaves × two faces × full-page video textures overflow the GPU texture
+     budget on real machines — the browser then EVICTS textures and content
+     paints blank intermittently (devtools looks clean). Only leaves near the
+     current view stay rendered: script.js toggles .occluded in renderLeaves
+     (re-run on every navigation); everything guaranteed-occluded drops its
+     layer (visibility:hidden + will-change:auto). A leaf that is mid-turn
+     (.flipping) or mid-drag (.dragging) is never culled. */
+  .leaf.occluded:not(.flipping):not(.dragging) { visibility: hidden; will-change: auto; }
+
+  /* Children with a filter or animation on a 3D-rotated face composite on
+     their OWN GPU layers and can IGNORE the parent's backface-visibility,
+     ghosting over other content. Give them their own backface-visibility AND
+     hard-hide the whole front of a fully-turned leaf — the :not(.flipping)/
+     :not(.dragging) guards delay the hide so it stays in sync with the
+     masking page-turn (and never fires mid-drag on a back-turn). */
+  .leaf .face.front .bubble, .leaf .face.front .bubble .bubble-bg,
+  .leaf .face.front .sbub, .leaf .face.front .sbub-svg,
+  .leaf .face.front .hs-hand {
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  }
+  .leaf.flipped:not(.flipping):not(.dragging) .face.front > * { visibility: hidden; }
 
   .leaf .face {
     position: absolute; inset: 0; overflow: hidden;
@@ -899,7 +929,7 @@
   }
 
   /* ==========================================================================
-     LBD GAME OVERLAY  —  the embedded Stairway Shuffle game.
+     LBD GAME OVERLAY  —  the embedded "Power Up, Bots!" halves game.
      A body-level iframe (NOT inside the 3D book) so it can expand to a true
      full-screen box. JS gives it left/top/width/height matching the page for the
      pre-LBD look; adding .fullscreen makes it fill the whole viewport.
@@ -938,8 +968,7 @@
   /* While the game is full screen, get the book chrome out of the way. */
   body.lbd-fullscreen .corner-arrow,
   body.lbd-fullscreen .home-btn,
-  body.lbd-fullscreen .flip-hint,
-  body.lbd-fullscreen .toolbar { display: none !important; }
+  body.lbd-fullscreen .flip-hint { display: none !important; }
 
   /* ---- Speech bubble (SVG) --------------------------------------------------
      A white comic bubble with a black outline + purple neon glow and a tail,
@@ -1026,34 +1055,9 @@
     100% { opacity: 1; transform: scale(1)    translateY(0);    }
   }
 
-  /* ==========================================================================
-     CONTROLS  —  arrows, progress read-out, mute toggle
-     ========================================================================== */
-  .arrow {
-    position: fixed; top: 50%; transform: translateY(-50%);
-    width: clamp(42px, 6vw, 60px); height: clamp(42px, 6vw, 60px);
-    border: none; border-radius: 50%; background: rgba(255,255,255,0.85);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.18);
-    font-size: clamp(20px, 3vw, 30px); color: var(--cover-2);
-    cursor: pointer; z-index: 700; display: none;
-    align-items: center; justify-content: center;
-    transition: transform 140ms ease, background 140ms ease, opacity 200ms ease;
-  }
-  .arrow:hover  { background: #fff; transform: translateY(-50%) scale(1.08); }
-  .arrow:active { transform: translateY(-50%) scale(0.94); }
-  .arrow:disabled { opacity: 0.3; cursor: default; }
-  .arrow.prev { left: clamp(6px, 3vw, 34px); } .arrow.next { right: clamp(6px, 3vw, 34px); }
-  body.is-open .arrow { display: flex; }
-
-  /* Fixed at the bottom-centre (out of the column flow) so the book can sit dead-
-     centre in the viewport instead of being pushed up by this row. */
-  .toolbar { position: fixed; left: 50%; bottom: clamp(2px, 0.6vh, 8px);
-             transform: translateX(-50%); z-index: 650; margin: 0;
-             display: flex; align-items: center; gap: 14px;
-             font-family: var(--font-head); font-weight: 500; }
-  .progress { background: rgba(255,255,255,0.82); padding: 6px 16px; border-radius: 999px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: var(--ink); cursor: default;
-              font-size: clamp(14px, 2vw, 18px); min-width: 108px; text-align: center; }
+  /* (The old .arrow / .toolbar / .progress control styles were removed along
+     with the legacy hidden #prev/#next buttons and the retired page counter —
+     the bottom-corner .corner-arrow buttons are the only nav controls now.) */
 
   /* Respect users who prefer less motion */
   @media (prefers-reduced-motion: reduce) {

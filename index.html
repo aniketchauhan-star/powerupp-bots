@@ -20,11 +20,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Power Up, Bots!</title>
 
-<!-- ── Google Fonts: Fredoka (headings + speech bubbles) + Patrick Hand & Caveat ── -->
+<!-- ── Google Fonts: Fredoka 600/700 only — the single family/weights any
+     visible text renders with (Patrick Hand, Caveat and Fredoka 500 were
+     requested but never drawn, so they were trimmed). ── -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
-  href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fredoka:wght@500;600;700&family=Patrick+Hand&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
   rel="stylesheet"
 />
 
@@ -93,7 +95,7 @@
                 <div class="back-fill"></div>
                 <div class="curl"></div>
                 <button class="play-btn" id="hint" type="button" aria-label="Play — open the book">
-                  <img class="play-img" src="assets/play button.png" alt="" aria-hidden="true" draggable="false" />
+                  <img class="play-img" src="assets/play button.webp" alt="" aria-hidden="true" draggable="false" />
                 </button>
               </div>
               <!-- BACK of the front cover: intentionally BLANK (plain dark board). -->
@@ -143,18 +145,18 @@
   </svg>
 </button>
 
-<!-- (legacy hidden nav elements kept only so existing JS refs stay valid) -->
-<button class="arrow prev" id="prev" aria-label="Previous page">‹</button>
-<button class="arrow next" id="next" aria-label="Next page">›</button>
-
 <!-- ============================================================================
      EMBEDDED GAME OVERLAY — "Power Up, Bots!" halves game (after the video-10 page).
      A BODY-LEVEL iframe (deliberately NOT inside the 3D book): a CSS transform on
      .flip-scale would trap position:fixed, so true fullscreen must live out here.
-     • Landing on the game page opens this OVER the whole screen (see script.js →
-       updateLbdOverlay / setLbdFullscreen).
-     • When the game posts that it's complete, the overlay shrinks away and the book
-       auto-turns to the next page (see the "message" listener in script.js).
+     • The game is booted SILENTLY in here after the flipbook's `load` (idle
+       callback), so reaching the game page never waits on the network.
+     • Landing on the game page reveals it PARKED over the page rectangle — the
+       game's title screen looks printed in the book (see updateLbdOverlay).
+     • Tapping the game's Play button (it posts lbd-start via embed-bridge.js)
+       smoothly expands the overlay to true fullscreen (setLbdFullscreen).
+     • When the game posts activity_complete, the overlay shrinks away and the
+       book auto-turns to the next page (see the "message" listener in script.js).
      Styling: styles.css → .lbd-stage / .lbd-stage.fullscreen / #lbdFrame.
      ============================================================================ -->
 <div class="lbd-stage" id="lbdStage" aria-hidden="true">
@@ -172,35 +174,43 @@
      ============================================================================ -->
 <div id="asset-manifest" hidden aria-hidden="true" style="display:none">
   <!-- ── Page videos ── -->
-  <video preload="none" muted playsinline src="assets/1.mp4"            data-role="page-1"></video>
-  <video preload="none" muted playsinline src="assets/2.mp4"            data-role="page-2"></video>
-  <video preload="none" muted playsinline src="assets/3.mp4"            data-role="page-3"></video>
-  <video preload="none" muted playsinline src="assets/4.mp4"            data-role="page-4"></video>
-  <video preload="none" muted playsinline src="assets/5(rectangle).mp4" data-role="page-5-rectangle"></video>
-  <video preload="none" muted playsinline src="assets/5(green).mp4"     data-role="page-5-green"></video>
-  <video preload="none" muted playsinline src="assets/5(circle).mp4"    data-role="page-5-circle"></video>
-  <video preload="none" muted playsinline src="assets/6.mp4"            data-role="page-6"></video>
-  <video preload="none" muted playsinline src="assets/7.mp4"            data-role="page-7-intro"></video>
-  <video preload="none" muted playsinline src="assets/7(2).mp4"         data-role="page-7-reveal"></video>
-  <video preload="none" muted playsinline src="assets/8.mp4"            data-role="page-8-intro"></video>
-  <video preload="none" muted playsinline src="assets/9.mp4"            data-role="page-8-reveal"></video>
-  <video preload="none" muted playsinline src="assets/10.mp4"           data-role="page-10"></video>
-  <video preload="none" muted playsinline src="assets/11.mp4"           data-role="page-11"></video>
+  <!-- Formats: WebM (VP9+Opus) video, Ogg (Opus) audio, WebP images —
+       supported by Chrome/Edge/Firefox and recent Safari (16.4+/17+). -->
+  <video preload="none" muted playsinline src="assets/1.webm"            data-role="page-1"></video>
+  <video preload="none" muted playsinline src="assets/2.webm"            data-role="page-2"></video>
+  <video preload="none" muted playsinline src="assets/3.webm"            data-role="page-3"></video>
+  <video preload="none" muted playsinline src="assets/4.webm"            data-role="page-4"></video>
+  <video preload="none" muted playsinline src="assets/5(rectangle).webm" data-role="page-5-rectangle"></video>
+  <video preload="none" muted playsinline src="assets/5(green).webm"     data-role="page-5-green"></video>
+  <video preload="none" muted playsinline src="assets/5(circle).webm"    data-role="page-5-circle"></video>
+  <video preload="none" muted playsinline src="assets/6.webm"            data-role="page-6"></video>
+  <video preload="none" muted playsinline src="assets/7.webm"            data-role="page-7-intro"></video>
+  <video preload="none" muted playsinline src="assets/7(2).webm"         data-role="page-7-reveal"></video>
+  <video preload="none" muted playsinline src="assets/8.webm"            data-role="page-8-intro"></video>
+  <video preload="none" muted playsinline src="assets/9.webm"            data-role="page-8-reveal"></video>
+  <video preload="none" muted playsinline src="assets/10.webm"           data-role="page-10"></video>
+  <video preload="none" muted playsinline src="assets/11.webm"           data-role="page-11"></video>
 
   <!-- ── Images ── -->
-  <img loading="lazy" src="assets/coverpage.png"      alt="cover"            data-role="cover" />
-  <img loading="lazy" src="assets/5.png"              alt="page 5 shelf"     data-role="page-5-still" />
-  <img loading="lazy" src="assets/7(1).png"           alt="page 7 still"     data-role="page-7-still" />
+  <img loading="lazy" src="assets/coverpage.webp"     alt="cover"            data-role="cover" />
+  <img loading="lazy" src="assets/5.webp"             alt="page 5 shelf"     data-role="page-5-still" />
+  <img loading="lazy" src="assets/7(1).webp"          alt="page 7 still"     data-role="page-7-still" />
   <img loading="lazy" src="assets/handNudge.webp"     alt="hand nudge"       data-role="hand-nudge" />
-  <img loading="lazy" src="assets/play%20button.png"  alt="play button art"  data-role="play-button" />
+  <img loading="lazy" src="assets/play%20button.webp" alt="play button art"  data-role="play-button" />
 
   <!-- ── Audio (sfx) ── -->
-  <audio preload="none" src="sfx/Page%20flip.mp3"        data-role="sfx-page-flip"></audio>
-  <audio preload="none" src="sfx/cover%20page%20flip.mp3" data-role="sfx-cover-flip"></audio>
+  <audio preload="none" src="sfx/Page%20flip.ogg"         data-role="sfx-page-flip"></audio>
+  <audio preload="none" src="sfx/cover%20page%20flip.ogg" data-role="sfx-cover-flip"></audio>
 </div>
 
 <!-- Inlined one-shot SFX (base64) for glitch-free Web Audio playback on file:// -->
 <script src="sfx-data.js"></script>
+<!-- PRELOADER: size manifest (auto-generated from the real files) + engine.
+     Fetches EVERY asset — flipbook media AND the embedded game's files — behind
+     a loading bar on the cover; the Play button appears only at 100%.
+     Must load BEFORE script.js (script.js guards openBook on PRELOAD.done). -->
+<script src="preload-manifest.js"></script>
+<script src="preloader.js"></script>
 <!-- All behaviour lives in script.js -->
 <script src="script.js"></script>
 </body>
