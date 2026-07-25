@@ -190,6 +190,12 @@
      look and a gated/disabled arrow would render at full brightness. */
   .corner-arrow[disabled],
   body.is-open .corner-arrow[disabled] { opacity: 0.22; pointer-events: none; }
+  /* GONE, not greyed: Back is absent on page 1 and Forward is absent until the
+     page's video / interaction is finished (JS toggles .is-hidden in
+     updateProgress). Same `body.is-open` variant trick so this outranks the
+     `display: flex` reading rule above. */
+  .corner-arrow.is-hidden,
+  body.is-open .corner-arrow.is-hidden { display: none; }
   .corner-arrow.back { left: clamp(12px, 2.5vw, 34px); }
   .corner-arrow.fwd  { right: clamp(12px, 2.5vw, 34px); }
   .corner-arrow svg  { width: 62%; height: 62%; }     /* glyph fills 62% of the box */
@@ -233,8 +239,16 @@
     25%, 75% { opacity: 0.3;  filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55)) drop-shadow(0 0 3px  rgba(246,184,30,0.25)); }
     50%      { opacity: 1;    filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55)) drop-shadow(0 0 18px rgba(246,184,30,1)); }
   }
+  /* Arrows are display:none while hidden, so the .corner-arrow opacity transition
+     can't fade them in — this one-shot fade on the GLYPH does it instead (going
+     display:none → flex restarts it, which is exactly when the arrow appears).
+     Deliberately on the svg, and opacity-ONLY: on the button it would override
+     .blink/.blink1, and a transform here would fight .back svg's scaleX(-1) mirror. */
+  body.is-open .corner-arrow:not(.is-hidden) svg { animation: arrowFadeIn 320ms ease-out 1; }
+  @keyframes arrowFadeIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
-    .flip-hint.show, .corner-arrow.blink, .corner-arrow.blink1 { animation: none; }
+    .flip-hint.show, .corner-arrow.blink, .corner-arrow.blink1,
+    body.is-open .corner-arrow:not(.is-hidden) svg { animation: none; }
     .flip-hint.show { transform: rotate(var(--nh-rot, 0deg)); }   /* keep the per-page tilt */
   }
 

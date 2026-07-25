@@ -364,9 +364,13 @@ function buildHotspotPage(page) {
     step++;
     if (step < steps.length) {
       showHand();                                     // point at the next shape
+      if (typeof bumpNextGate === "function") bumpNextGate();  // progress → push the safety unlock back
     } else {
       hand.classList.remove("show");
-      if (typeof armFlipHint === "function") armFlipHint();   // all done → nudge to turn the page (5s later)
+      // EVERY shape has now played → the interaction is complete, so open the
+      // Next gate (the arrow appears) and nudge to turn the page 5s later.
+      if (typeof unlockNext === "function") unlockNext(flipped);
+      if (typeof armFlipHint === "function") armFlipHint();
     }
   }
   vid.addEventListener("ended", stepDone);
@@ -492,6 +496,7 @@ function buildSequencePage(page) {
     playVid(reveal, page.reveal);
     clearTimeout(revealWatchdog);
     revealWatchdog = setTimeout(revealDone, watchdogMs(reveal));
+    if (typeof bumpNextGate === "function") bumpNextGate();   // tapped → don't unlock behind the reveal
   }
   /* Phase advances are media-gated, so each has THREE paths — the clip's
      `ended`, its `error`, and a watchdog (duration + 4s grace; 30s when the
@@ -510,14 +515,18 @@ function buildSequencePage(page) {
       intro.style.pointerEvents = "none";              // stray taps mustn't replay it (only the pink zone acts)
     }
     showHotspotHand();
-    // The sequence page's Next gate opens when the auto-playing INTRO is done
-    // (introDone funnels all three paths: ended / error / watchdog).
-    if (typeof unlockNext === "function") unlockNext(flipped);
+    // The intro finishing is NOT the end of this page — the reader still has the
+    // hotspot to tap. So the Next gate stays closed here (it opens in revealDone);
+    // we only push the safety watchdog out to give them time to tap.
+    if (typeof bumpNextGate === "function") bumpNextGate();
   }
   function revealDone() {
     clearTimeout(revealWatchdog);
     if (!active || phase !== "reveal") return;
     phase = "done";                                    // hold on the last frame; nudge to turn the page
+    // Intro watched + hotspot tapped + reveal finished → the interaction is
+    // complete, so the Next arrow appears now (all three paths funnel here).
+    if (typeof unlockNext === "function") unlockNext(flipped);
     if (typeof armFlipHint === "function") armFlipHint();
   }
   function watchdogMs(v) {
@@ -1064,19 +1073,28 @@ function goPrev() {
 }
 
 /* ==========================================================================
-   VIDEO-GATED NEXT  —  on every page that PLAYS a video on arrival (plain
-   "video" pages and the "sequence" pages, whose intro clip auto-plays), the
-   Next arrow starts DISABLED and unlocks only when that video finishes.
+   GATED NEXT  —  the Next arrow is HIDDEN (not just greyed) until the page has
+   given up everything it has to give:
+     • "video"    pages → until the page video finishes.
+     • "sequence" pages → until the INTERACTION finishes (intro plays, reader
+                          taps the hotspot, the reveal clip ends) — see revealDone.
+     • "hotspots" page  → until EVERY shape has been tapped and played.
    Re-armed on EVERY page arrival, including backward revisits.
-   ⚠ Never gated on `ended` alone — a broken/stalled video would lock the
-   reader on the page forever. THREE unlock paths, whichever fires first:
-     (a) the video's `ended`   (wired in makeMedia / the sequence's introDone)
+   ⚠ Never gated on `ended` alone — a broken/stalled video or a dead hotspot
+   would trap the reader on the page forever. THREE unlock paths, whichever
+   fires first:
+     (a) the video's `ended`   (makeMedia / revealDone / the last stepDone)
      (b) the video's `error`   (same wiring)
-     (c) a watchdog of duration + ~4s grace (30s if duration unknown), below.
+     (c) a watchdog — duration + ~4s grace on plain video pages; on interaction
+         pages a generous idle grace that is RE-ARMED by bumpNextGate() after
+         every completed step, so an engaged reader never trips it early while
+         an idle/stuck one still escapes.
    Keyboard / swipe / programmatic goNext() respect the same lock (guards in
-   goNext and the drag decider). Pages without an auto-playing video
-   (hotspots, the game, THE END) are never locked; Back + Home stay usable.
+   goNext and the drag decider). Pages with nothing to wait on (the game, THE
+   END) are never locked; Back + Home stay usable throughout.
    ========================================================================== */
+const GATED_PAGE_TYPES = { video: 1, sequence: 1, hotspots: 1 };
+const GATE_IDLE_GRACE_MS = 75000;   // interaction pages: safety unlock after this much inactivity
 let nextLocked = false;        // is the CURRENT page's Next gate closed?
 let nextLockPage = -1;         // which page the gate belongs to (stale-unlock guard)
 let nextGateWatchdog = null;   // unlock path (c)
@@ -1088,24 +1106,37 @@ function unlockNext(idx) {
   nextLocked = false;
   updateProgress();
 }
+// (c) — arm/re-arm the safety watchdog for the page that owns the gate.
+function gateWatchdog(idx, ms) {
+  clearTimeout(nextGateWatchdog);
+  if (!nextLocked || idx !== nextLockPage) return;
+  nextGateWatchdog = setTimeout(function () { unlockNext(idx); }, ms);
+}
+// Called by the interaction controllers whenever the reader makes PROGRESS (a
+// shape played, the hotspot tapped): pushes the safety unlock back out of the way.
+function bumpNextGate() { gateWatchdog(flipped, GATE_IDLE_GRACE_MS); }
 // Called from refreshMedia on every NEW page arrival (forward or backward).
 function armNextGate(idx) {
   clearTimeout(nextGateWatchdog);
   nextLockPage = idx;
   const page = pages[idx];
-  const gated = !!page && (page.type === "video" || page.type === "sequence") &&
-                idx < totalPages - 1;
+  const gated = !!page && !!GATED_PAGE_TYPES[page.type] && idx < totalPages - 1;
   nextLocked = gated;
   updateProgress();
   if (!gated) return;
-  // (c) the watchdog — duration + 4s grace when known, 30s when not, plus any
-  // configured pre-play delay. Re-armed per arrival by definition (we're here).
   const leaf = leaves[idx];
-  const v = leaf && (page.type === "video" ? leaf.querySelector("video.page-media")
-                                           : leaf.querySelector("video"));   // sequence intro
-  const base = (v && isFinite(v.duration) && v.duration > 0) ? v.duration * 1000 + 4000 : 30000;
-  nextGateWatchdog = setTimeout(function () { unlockNext(idx); },
-                                base + (page.delay || 0));
+  if (page.type === "video") {
+    // duration + 4s grace when known, 30s when not, plus any pre-play delay.
+    const v = leaf && leaf.querySelector("video.page-media");
+    const base = (v && isFinite(v.duration) && v.duration > 0) ? v.duration * 1000 + 4000 : 30000;
+    gateWatchdog(idx, base + (page.delay || 0));
+  } else {
+    // Interaction page: whatever auto-plays on arrival (the sequence intro) plus
+    // the idle grace — then re-armed per completed step by bumpNextGate().
+    const v = leaf && leaf.querySelector("video");
+    const base = (v && isFinite(v.duration) && v.duration > 0) ? v.duration * 1000 : 0;
+    gateWatchdog(idx, base + GATE_IDLE_GRACE_MS);
+  }
 }
 
 /* ---- Nav state (page counter removed) ----------------------------------- */
@@ -1113,9 +1144,13 @@ function updateProgress() {
   // HOME button appears as soon as the cover OPENS (not after the open finishes) —
   // hidden on the cover and on the last page (THE END, which has its own Replay).
   if (homeBtn) homeBtn.classList.toggle("show", opened && flipped < totalPages - 1);
-  if (cornerPrev) cornerPrev.disabled = !ready || flipped <= 0;             // grey the back corner at page 1
-  if (cornerNext) cornerNext.disabled = !ready || flipped >= totalPages - 1  // grey forward on THE END page
-                                        || nextLocked;                       // video gate (see armNextGate)
+  // Both arrows are HIDDEN rather than greyed whenever they can't be used, so the
+  // reader is never offered a dead control (.is-hidden → display:none in styles.css).
+  const noBack = !ready || flipped <= 0;                    // page 1 / cover: nothing to go back to
+  const noNext = !ready || flipped >= totalPages - 1        // THE END: nothing to go forward to
+                 || nextLocked;                             // gate still closed (see armNextGate)
+  if (cornerPrev) { cornerPrev.disabled = noBack; cornerPrev.classList.toggle("is-hidden", noBack); }
+  if (cornerNext) { cornerNext.disabled = noNext; cornerNext.classList.toggle("is-hidden", noNext); }
 }
 
 /* ---- Open the 3D cover, then hand off to the page-turning book ----------
