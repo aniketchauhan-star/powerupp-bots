@@ -31,6 +31,47 @@
     --flip-ease:  cubic-bezier(0.65, 0.00, 0.35, 1);      /* pronounced ease-in + ease-out */
     --cover-ms:   1000ms;                                 /* cover-open duration */
     --cover-ease: cubic-bezier(0.34, 1.56, 0.64, 1);      /* springy overshoot   */
+
+    /* -- NAV CONTROL SCALE  —  ONE size for every nav button, no magic numbers -
+       Driven by the SMALLER viewport side (vmin, NOT vw) so a 1024x768 tablet
+       never gets the oversized arrow a vw clamp would hand it. The 56px floor
+       keeps the tap target comfortably past the 44x44 minimum; 112px keeps it
+       kid-sized rather than silly on a 4K screen.
+         --nav-gap  : the guaranteed clear space between any two controls, and
+                      between a control and the book. Derived from the size, so
+                      it scales with it.
+         --nav-edge : minimum distance from the viewport edge. env(safe-area-*)
+                      is added ON TOP of it at each use site, so notches and
+                      mobile browser chrome can never clip a button.
+       fitScale() MEASURES these off #navMetrics (below) rather than re-deriving
+       them, so the JS reservation and the CSS placement cannot drift apart. */
+    --nav-btn:  clamp(56px, 8vmin, 112px);
+    --nav-gap:  calc(var(--nav-btn) * 0.35);
+    --nav-edge: 10px;
+    /* Viewport height that FOLLOWS the mobile URL bar collapsing, with a plain
+       vh fallback for engines without the dynamic viewport units. */
+    --vh100: 100vh;
+  }
+  /* Dynamic viewport units where supported: the nav sizing + the clipping guard
+     then track the LIVE viewport instead of the largest-possible one. */
+  @supports (height: 100dvh) {
+    :root { --nav-btn: clamp(56px, 8dvmin, 112px); --vh100: 100dvh; }
+  }
+
+  /* ---- NAV METRICS PROBE ----------------------------------------------------
+     An off-screen element whose computed box IS the nav sizing above. fitScale()
+     reads the REAL --nav-btn / --nav-gap / safe-area values off it, so there is a
+     single source of truth: the old hard-coded `CTRL = 64` in JS against 124px
+     buttons in CSS is exactly what let the book sit on top of the controls.
+     content-box so each read is the raw value, not a border-box sum. */
+  #navMetrics {
+    position: fixed; left: -9999px; top: 0; visibility: hidden; pointer-events: none;
+    box-sizing: content-box;
+    width: var(--nav-btn); height: var(--nav-gap);
+    padding: calc(var(--nav-edge) + env(safe-area-inset-top,    0px))
+             calc(var(--nav-edge) + env(safe-area-inset-right,  0px))
+             calc(var(--nav-edge) + env(safe-area-inset-bottom, 0px))
+             calc(var(--nav-edge) + env(safe-area-inset-left,   0px));
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -135,42 +176,37 @@
   }
   body.is-open .book-frame { opacity: 1; }
 
-  /* Flip arrows OUTSIDE the book, fixed at the viewport's bottom corners
-     (bottom-left = back, bottom-right = forward). position:fixed so they escape
-     the scaled/transformed book layer and never cover the pages or their
-     corners (which keeps turn.js's hover page-curl working on every corner). */
-  /* Bare arrow icons — NO circle: no background fill, no box-shadow, no border,
-     no rounded pill. Only the arrow glyph shows, same position/size, clickable. */
-  /* Flip arrows OUTSIDE the book, fixed at the viewport's bottom corners. */
+  /* Flip arrows OUTSIDE the book — the ONLY nav controls (the Home button was
+     removed; it shared the right edge with the forward arrow and collapsed into
+     it on short viewports). Bare glyphs: no circle, no fill, no border.
+     ANCHORED TO THE BOOK, NOT THE VIEWPORT. They sit in the left / right gutters
+     that fitScale() reserves, bottom-aligned to the book's own rendered bottom
+     edge (--book-bottom, republished by fitScale on load / resize / rotate). The
+     old vw/vh clamps were a SECOND, independent coordinate system, which is why
+     they drifted into the book on anything that wasn't 16:9.
+     Still position:fixed so they escape the scaled/transformed book layer, and
+     still fully outside the book box — turn.js's corner page-curl hover is never
+     covered. */
   .corner-arrow {
-    position: fixed; bottom: clamp(-10px, -0.5vh, -2px); z-index: 700;
-    width: clamp(84px, 10vw, 124px); height: clamp(84px, 10vw, 124px);  /* big, kid-friendly tap targets */
+    position: fixed; z-index: 700;
+    /* Button BOTTOM edge = book BOTTOM edge. The clamp is a purely structural
+       guard: even with --book-bottom missing or absurd, the button can never
+       leave the visible viewport (safe-area insets included). No negative
+       offsets anywhere, so nothing hangs off the screen. */
+    top: clamp(
+      calc(var(--nav-edge) + env(safe-area-inset-top, 0px)),
+      calc(var(--book-bottom, 80%) - var(--nav-btn)),
+      calc(var(--vh100) - var(--nav-btn) - var(--nav-edge) - env(safe-area-inset-bottom, 0px))
+    );
+    width: var(--nav-btn); height: var(--nav-btn);   /* one size scale — no per-button px */
+    min-width: 44px; min-height: 44px;               /* never below the 44x44 touch minimum */
     border: none; background: none; color: var(--accent-2);   /* moon-gold: visible on the night bg */
     filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55));           /* legible over any page */
     display: none; align-items: center; justify-content: center;
-    cursor: pointer; opacity: 0;
+    padding: 0; cursor: pointer; opacity: 0;
     transition: opacity 400ms ease, transform 150ms ease;      /* ~400ms fade-in once reading starts */
   }
   body.is-open .corner-arrow { display: flex; opacity: 0.96; }
-
-  /* HOME button — top-RIGHT, moon-gold like the arrows and the SAME box size,
-     so all three read as one control set. Lifted (negative top) so the glyph
-     clears the content frame's corner. JS toggles .show (only while reading;
-     hidden on the cover, the last page and the end). */
-  .home-btn {
-    position: fixed; top: clamp(-12px, -0.9vh, -4px); right: clamp(8px, 1.6vw, 22px); z-index: 720;
-    width: clamp(84px, 10vw, 124px); height: clamp(84px, 10vw, 124px);
-    border: none; background: none; color: var(--accent-2);
-    filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55));
-    display: none; align-items: center; justify-content: center;
-    cursor: pointer; opacity: 0; padding: 0;
-    transition: opacity 400ms ease, transform 150ms ease;
-  }
-  .home-btn.show   { display: flex; opacity: 0.96; }
-  .home-btn:hover  { transform: scale(1.12); }
-  .home-btn:active { transform: scale(0.9); }
-  .home-btn:focus, .home-btn:focus-visible { outline: none; box-shadow: none; }
-  .home-btn svg { width: 65%; height: 65%; }   /* visual weight matched to the 62% arrows */
 
   /* While the viewport is actively resizing / the resolution is changing, freeze
      the page-turn transitions so the book can't appear to auto-flip (JS adds
@@ -196,8 +232,13 @@
      `display: flex` reading rule above. */
   .corner-arrow.is-hidden,
   body.is-open .corner-arrow.is-hidden { display: none; }
-  .corner-arrow.back { left: clamp(12px, 2.5vw, 34px); }
-  .corner-arrow.fwd  { right: clamp(12px, 2.5vw, 34px); }
+  /* Horizontal: hard against the viewport's safe edge, ONE arrow per side.
+     fitScale() reserves --nav-edge + --nav-btn + --nav-gap of gutter on EACH side
+     before it scales the book, so the book can never reach an arrow (the BOOK
+     shrinks, never the controls) — and with one arrow per side, separated by the
+     whole width of the book, they can never reach each other either. */
+  .corner-arrow.back { left:  calc(var(--nav-edge) + env(safe-area-inset-left,  0px)); }
+  .corner-arrow.fwd  { right: calc(var(--nav-edge) + env(safe-area-inset-right, 0px)); }
   .corner-arrow svg  { width: 62%; height: 62%; }     /* glyph fills 62% of the box */
   .corner-arrow.back svg { transform: scaleX(-1); }   /* mirror the forward arrow */
 
@@ -441,10 +482,12 @@
     background: var(--page-edge);
   }
   /* Front + back: the size of a page */
-  /* NOTE: every translateZ below references --book-w / --thick DIRECTLY with a
-     single calc(). Do NOT wrap a custom property that is itself a calc() inside
-     another calc() — some engines reject the nested expression and silently
-     drop the whole transform. */
+  /* NOTE: every translateZ below references --pw / --ph / --thick DIRECTLY with a
+     single calc(). (These are the book's FIXED internal page dimensions set on
+     .flip-scale — NOT the new --book-w/--book-h, which are its scaled on-screen
+     size and are only used by the nav controls.) Do NOT wrap a custom property
+     that is itself a calc() inside another calc() — some engines reject the
+     nested expression and silently drop the whole transform. */
   .pageblock .pb-front {
     width: var(--pbw); height: var(--pbh);
     transform: translate(-50%, -50%) translateZ(calc(var(--thick) / 2));
@@ -981,7 +1024,6 @@
   }
   /* While the game is full screen, get the book chrome out of the way. */
   body.lbd-fullscreen .corner-arrow,
-  body.lbd-fullscreen .home-btn,
   body.lbd-fullscreen .flip-hint { display: none !important; }
 
   /* ---- Speech bubble (SVG) --------------------------------------------------
