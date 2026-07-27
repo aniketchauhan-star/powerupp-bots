@@ -40,22 +40,22 @@
          --nav-gap  : the guaranteed clear space between any two controls, and
                       between a control and the book. Derived from the size, so
                       it scales with it.
-         --nav-edge : minimum distance from the viewport edge. env(safe-area-*)
-                      is added ON TOP of it at each use site, so notches and
-                      mobile browser chrome can never clip a button.
+         --nav-edge : distance from the viewport edge, matching the corner inset
+                      the arrows always had (the old clamp(12px, 2.5vw, 34px)),
+                      but on vmin so it tracks the button. env(safe-area-*) is
+                      added ON TOP of it at each use site, so notches and mobile
+                      browser chrome can never clip a button.
        fitScale() MEASURES these off #navMetrics (below) rather than re-deriving
        them, so the JS reservation and the CSS placement cannot drift apart. */
     --nav-btn:  clamp(56px, 8vmin, 112px);
     --nav-gap:  calc(var(--nav-btn) * 0.35);
-    --nav-edge: 10px;
-    /* Viewport height that FOLLOWS the mobile URL bar collapsing, with a plain
-       vh fallback for engines without the dynamic viewport units. */
-    --vh100: 100vh;
+    --nav-edge: clamp(12px, 1.8vmin, 28px);
   }
-  /* Dynamic viewport units where supported: the nav sizing + the clipping guard
-     then track the LIVE viewport instead of the largest-possible one. */
+  /* Dynamic viewport units where supported: the nav sizing then tracks the LIVE
+     viewport instead of the largest-possible one, so a collapsing mobile URL bar
+     can't shift the controls. */
   @supports (height: 100dvh) {
-    :root { --nav-btn: clamp(56px, 8dvmin, 112px); --vh100: 100dvh; }
+    :root { --nav-btn: clamp(56px, 8dvmin, 112px); --nav-edge: clamp(12px, 1.8dvmin, 28px); }
   }
 
   /* ---- NAV METRICS PROBE ----------------------------------------------------
@@ -179,25 +179,25 @@
   /* Flip arrows OUTSIDE the book — the ONLY nav controls (the Home button was
      removed; it shared the right edge with the forward arrow and collapsed into
      it on short viewports). Bare glyphs: no circle, no fill, no border.
-     ANCHORED TO THE BOOK, NOT THE VIEWPORT. They sit in the left / right gutters
-     that fitScale() reserves, bottom-aligned to the book's own rendered bottom
-     edge (--book-bottom, republished by fitScale on load / resize / rotate). The
-     old vw/vh clamps were a SECOND, independent coordinate system, which is why
-     they drifted into the book on anything that wasn't 16:9.
+     They sit at the viewport's bottom corners exactly as before, but the space
+     they occupy is now GUARANTEED CLEAR by the book rather than hoped for: the
+     old vw/vh clamps sized the gutter in a second, independent coordinate system
+     from the book, which is why the two drifted into each other on anything that
+     wasn't 16:9. Now fitScale() reserves the real gutter from the real button
+     size and shrinks the BOOK to fit it (see --book-left / --book-right).
      Still position:fixed so they escape the scaled/transformed book layer, and
      still fully outside the book box — turn.js's corner page-curl hover is never
      covered. */
   .corner-arrow {
     position: fixed; z-index: 700;
-    /* Button BOTTOM edge = book BOTTOM edge. The clamp is a purely structural
-       guard: even with --book-bottom missing or absurd, the button can never
-       leave the visible viewport (safe-area insets included). No negative
-       offsets anywhere, so nothing hangs off the screen. */
-    top: clamp(
-      calc(var(--nav-edge) + env(safe-area-inset-top, 0px)),
-      calc(var(--book-bottom, 80%) - var(--nav-btn)),
-      calc(var(--vh100) - var(--nav-btn) - var(--nav-edge) - env(safe-area-inset-bottom, 0px))
-    );
+    /* At the viewport's BOTTOM CORNERS, as they were — but with a POSITIVE offset
+       (plus the safe-area inset) instead of the old negative `bottom: clamp(-10px,
+       -0.5vh, -2px)`, so the glyph is always fully on screen and never tucks under
+       a notch or the mobile URL bar. Clearance from the book is HORIZONTAL, not
+       vertical: fitScale() reserves --nav-edge + --nav-btn + --nav-gap of gutter on
+       each side before it scales the book, so the book's edge (--book-left /
+       --book-right) can never reach a corner whatever the vertical position. */
+    bottom: calc(var(--nav-edge) + env(safe-area-inset-bottom, 0px));
     width: var(--nav-btn); height: var(--nav-btn);   /* one size scale — no per-button px */
     min-width: 44px; min-height: 44px;               /* never below the 44x44 touch minimum */
     border: none; background: none; color: var(--accent-2);   /* moon-gold: visible on the night bg */
