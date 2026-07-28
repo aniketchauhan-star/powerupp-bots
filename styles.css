@@ -269,6 +269,26 @@
     0%, 100% { transform: rotate(var(--nh-rot, 0deg)) translateY(0)    scale(1);    }
     50%      { transform: rotate(var(--nh-rot, 0deg)) translateY(10px) scale(0.95); }
   }
+  /* ---- One-shot GLOW PULSE on the Next arrow the instant it APPEARS ----------
+     Played when a page's gate opens (its video ended / its interaction finished /
+     the game was completed) so the newly-revealed arrow catches the eye: two
+     quick swells of gold glow, then it settles back to exactly its normal look.
+     JS adds .glow-pulse in pulseNext() and strips it on animationend.
+     Placed BEFORE .blink/.blink1 on purpose — equal specificity, so if the idle
+     turn-hint blink ever starts while this is still running, the blink wins. */
+  .corner-arrow.glow-pulse { animation: arrowGlowPulse 1.5s ease-in-out 1; }
+  @keyframes arrowGlowPulse {
+    0%, 100% { opacity: 0.96; transform: scale(1);
+               filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55)) drop-shadow(0 0 0   rgba(246,184,30,0));    }
+    14%      { opacity: 1;    transform: scale(1.17);
+               filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55)) drop-shadow(0 0 20px rgba(246,184,30,0.95)); }
+    34%      { opacity: 0.96; transform: scale(1);
+               filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55)) drop-shadow(0 0 6px  rgba(246,184,30,0.3));  }
+    54%      { opacity: 1;    transform: scale(1.17);
+               filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55)) drop-shadow(0 0 20px rgba(246,184,30,0.95)); }
+    78%      { opacity: 0.96; transform: scale(1);
+               filter: drop-shadow(0 2px 7px rgba(0,0,0,0.55)) drop-shadow(0 0 3px  rgba(246,184,30,0.15)); }
+  }
   /* The RIGHT (forward) arrow blinks while the nudge is playing, to draw the eye. */
   .corner-arrow.blink { animation: arrowBlink 0.6s ease-in-out infinite; }
   @keyframes arrowBlink { 0%, 100% { opacity: 0.96; } 50% { opacity: 0.2; } }
@@ -288,7 +308,7 @@
   body.is-open .corner-arrow:not(.is-hidden) svg { animation: arrowFadeIn 320ms ease-out 1; }
   @keyframes arrowFadeIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
-    .flip-hint.show, .corner-arrow.blink, .corner-arrow.blink1,
+    .flip-hint.show, .corner-arrow.blink, .corner-arrow.blink1, .corner-arrow.glow-pulse,
     body.is-open .corner-arrow:not(.is-hidden) svg { animation: none; }
     .flip-hint.show { transform: rotate(var(--nh-rot, 0deg)); }   /* keep the per-page tilt */
   }

@@ -825,7 +825,9 @@ function exitLbd() {
   setLbdFullscreen(false);                // shrink the game back into the page
   setTimeout(function () {
     lbdExiting = false;
-    if (flipped === LBD_INDEX) goNext();  // auto-advance to the next story page
+    if (flipped !== LBD_INDEX) return;
+    unlockNext(LBD_INDEX);                // the game is FINISHED — open its Next gate…
+    goNext();                             // …and auto-advance to the next story page
   }, 470);                                // just after the shrink transition (.4s)
 }
 // Listen for the game's messages.
@@ -1134,7 +1136,12 @@ function goPrev() {
      • "sequence" pages → until the INTERACTION finishes (intro plays, reader
                           taps the hotspot, the reveal clip ends) — see revealDone.
      • "hotspots" page  → until EVERY shape has been tapped and played.
-   Re-armed on EVERY page arrival, including backward revisits.
+     • "lbd" (game)     → until the game reports it is COMPLETE (see exitLbd);
+                          there is no "watch it out" here, the reader must play.
+   Armed on every FIRST arrival at a page — but a page that has already been
+   finished once is never re-gated (see `pageDone`), so going BACK to re-read
+   an earlier page shows Back AND Next immediately: nobody is made to sit
+   through a video, an interaction or a game they already completed.
    ⚠ Never gated on `ended` alone — a broken/stalled video or a dead hotspot
    would trap the reader on the page forever. THREE unlock paths, whichever
    fires first:
@@ -1143,23 +1150,31 @@ function goPrev() {
      (c) a watchdog — duration + ~4s grace on plain video pages; on interaction
          pages a generous idle grace that is RE-ARMED by bumpNextGate() after
          every completed step, so an engaged reader never trips it early while
-         an idle/stuck one still escapes.
+         an idle/stuck one still escapes. On the GAME page the watchdog is a
+         load-failure escape hatch only — it stands down while the game is
+         actually being played (see lbdGateFallback).
    Keyboard / swipe / programmatic goNext() respect the same lock (guards in
-   goNext and the drag decider). Pages with nothing to wait on (the game, THE
-   END) are never locked; Back + Home stay usable throughout.
+   goNext and the drag decider). Pages with nothing to wait on (THE END) are
+   never locked; Back + Home stay usable throughout.
    ========================================================================== */
-const GATED_PAGE_TYPES = { video: 1, sequence: 1, hotspots: 1 };
+const GATED_PAGE_TYPES = { video: 1, sequence: 1, hotspots: 1, lbd: 1 };
 const GATE_IDLE_GRACE_MS = 75000;   // interaction pages: safety unlock after this much inactivity
+const LBD_GATE_FALLBACK_MS = 90000; // game page: escape hatch ONLY while the game never started
 let nextLocked = false;        // is the CURRENT page's Next gate closed?
 let nextLockPage = -1;         // which page the gate belongs to (stale-unlock guard)
 let nextGateWatchdog = null;   // unlock path (c)
+// Pages whose gate has already been satisfied. Finished stays finished for the
+// whole read — cleared only by resetToStart() (Home / Replay = a fresh read).
+const pageDone = Object.create(null);
 
 function unlockNext(idx) {
   if (idx !== undefined && idx !== nextLockPage) return;   // unlock from a page we already left
   clearTimeout(nextGateWatchdog);
+  if (nextLockPage >= 0) pageDone[nextLockPage] = 1;       // done once → never gated again
   if (!nextLocked) return;
   nextLocked = false;
   updateProgress();
+  pulseNext();                   // the arrow just APPEARED — glow-pulse it into view
 }
 // (c) — arm/re-arm the safety watchdog for the page that owns the gate.
 function gateWatchdog(idx, ms) {
@@ -1170,12 +1185,25 @@ function gateWatchdog(idx, ms) {
 // Called by the interaction controllers whenever the reader makes PROGRESS (a
 // shape played, the hotspot tapped): pushes the safety unlock back out of the way.
 function bumpNextGate() { gateWatchdog(flipped, GATE_IDLE_GRACE_MS); }
+// The GAME page has no time-based unlock: Next appears only when the game itself
+// reports completion. This watchdog exists purely so a game that never BOOTS
+// can't dead-end the story — it re-arms itself (instead of unlocking) for as long
+// as the child is actually playing, so a slow player is never handed a skip arrow.
+function lbdGateFallback(idx) {
+  clearTimeout(nextGateWatchdog);
+  if (!nextLocked || idx !== nextLockPage) return;
+  nextGateWatchdog = setTimeout(function () {
+    if (lbdStarted || lbdFullscreen) { lbdGateFallback(idx); return; }  // being played → gate stays shut
+    unlockNext(idx);                                                     // never even started → let them past
+  }, LBD_GATE_FALLBACK_MS);
+}
 // Called from refreshMedia on every NEW page arrival (forward or backward).
 function armNextGate(idx) {
   clearTimeout(nextGateWatchdog);
   nextLockPage = idx;
   const page = pages[idx];
-  const gated = !!page && !!GATED_PAGE_TYPES[page.type] && idx < totalPages - 1;
+  const gated = !!page && !!GATED_PAGE_TYPES[page.type] && idx < totalPages - 1
+                && !pageDone[idx];                    // already finished → stays open on revisits
   nextLocked = gated;
   updateProgress();
   if (!gated) return;
@@ -1185,6 +1213,8 @@ function armNextGate(idx) {
     const v = leaf && leaf.querySelector("video.page-media");
     const base = (v && isFinite(v.duration) && v.duration > 0) ? v.duration * 1000 + 4000 : 30000;
     gateWatchdog(idx, base + (page.delay || 0));
+  } else if (page.type === "lbd") {
+    lbdGateFallback(idx);                    // completion-only gate (+ never-booted escape hatch)
   } else {
     // Interaction page: whatever auto-plays on arrival (the sequence intro) plus
     // the idle grace — then re-armed per completed step by bumpNextGate().
@@ -1202,7 +1232,34 @@ function updateProgress() {
   const noNext = !ready || flipped >= totalPages - 1        // THE END: nothing to go forward to
                  || nextLocked;                             // gate still closed (see armNextGate)
   if (cornerPrev) { cornerPrev.disabled = noBack; cornerPrev.classList.toggle("is-hidden", noBack); }
-  if (cornerNext) { cornerNext.disabled = noNext; cornerNext.classList.toggle("is-hidden", noNext); }
+  if (cornerNext) {
+    cornerNext.disabled = noNext;
+    cornerNext.classList.toggle("is-hidden", noNext);
+    // Hiding the arrow (display:none) CANCELS a running animation WITHOUT firing
+    // animationend — so drop the one-shot class here too, or a half-played pulse
+    // would come back to life the next time the arrow appears (on a page that
+    // never earned it). Belt and braces with the animationend handler below.
+    if (noNext) cornerNext.classList.remove("glow-pulse");
+  }
+}
+
+/* "You can go on now" cue: the moment a gate opens and the Next arrow appears
+   (video ended, interaction finished, game completed) it pulses twice with a
+   gold glow and then settles back to its normal look. One-shot — the class is
+   stripped on animationend so the NEXT appearance can play it again. Called
+   only from unlockNext, so it never fires on a page that was already open
+   (revisits to a finished page just show the arrow, quietly). */
+function pulseNext() {
+  if (!cornerNext || cornerNext.disabled || cornerNext.classList.contains("is-hidden")) return;
+  cornerNext.classList.remove("glow-pulse");
+  void cornerNext.offsetWidth;            // reflow → restart the one-shot from the top
+  cornerNext.classList.add("glow-pulse");
+}
+if (cornerNext) {
+  cornerNext.addEventListener("animationend", function (e) {
+    // the glyph's own arrowFadeIn bubbles up here too — only clear our own class
+    if (e.animationName === "arrowGlowPulse") cornerNext.classList.remove("glow-pulse");
+  });
 }
 
 /* ---- Open the 3D cover, then hand off to the page-turning book ----------
@@ -1287,6 +1344,8 @@ function resetToStart() {
   });
   Object.keys(specialCtrls).forEach(function (k) { specialCtrls[k].leave(); });   // reset all special pages
   lastMediaIdx = -1;
+  // Back on the cover = a fresh read: every page has to earn its Next arrow again.
+  Object.keys(pageDone).forEach(function (k) { delete pageDone[k]; });
   document.body.classList.remove("is-open", "is-closing");
   book.classList.remove("open", "closing");
   coverScene.classList.remove("parked");
@@ -1313,7 +1372,7 @@ function closeBookToCover(afterReset) {
   clearTimeout(_openTimer);
   clearTimeout(_homeTimer);
   hideFlipHint(); clearTimeout(idleHintTimer); clearTimeout(nudgeHideTimer);
-  if (cornerNext) cornerNext.classList.remove("blink", "blink1");
+  if (cornerNext) cornerNext.classList.remove("blink", "blink1", "glow-pulse");
   var v = currentVideo(); if (v) { try { v.pause(); } catch (_) {} }
   // pages back UNDER the cover, so the closing cover sweeps over them
   flipbookEl.style.zIndex = "";
