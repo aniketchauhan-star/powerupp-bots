@@ -725,7 +725,7 @@
      transparent, correctly-sized hit target; the image (which already carries its own
      neon glow) fills it and gently "breathes" to draw the eye. Sits low-centre. */
   .play-btn {
-    position: absolute; left: 51%; top: 70%; transform: translate(-50%, -50%);
+    position: absolute; left: 49%; top: 67%; transform: translate(-50%, -50%);
     z-index: 3;                                 /* above the full-bleed artwork */
     width: clamp(96px, 11vw, 136px); height: clamp(96px, 11vw, 136px);  /* big + poppy */
     border: none; padding: 0; margin: 0; cursor: pointer; background: transparent;
@@ -766,7 +766,7 @@
     100% { transform: scale(1);    opacity: 1; }
   }
   .load-bar {
-    position: absolute; left: 51%; top: 70%; transform: translate(-50%, -50%);
+    position: absolute; left: 48%; top: 70%; transform: translate(-50%, -50%);
     z-index: 3; width: clamp(180px, 24vw, 300px); text-align: center;
     pointer-events: none;
   }

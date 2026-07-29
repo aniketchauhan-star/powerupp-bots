@@ -78,7 +78,7 @@ window.PRELOAD_MANIFEST = [["PowerUp-Bots-main/story/assets/RectangleBlock.webp"
   ["assets/posters/3.webp",62128,"warm"],
   ["PowerUp-Bots-main/story/assets/Ira.webp",95908,"warm"],
   ["PowerUp-Bots-main/story/assets/Mainbg.webp",103434,"warm"],
-  ["assets/coverpage.webp",110048,"media"],
+  ["assets/coverpage.webp",114832,"media"],
   ["assets/posters/1.webp",117428,"warm"],
   ["PowerUp-Bots-main/story/assets/LabGate.webp",122778,"warm"],
   ["assets/5(green).webm",128223,"media"],
