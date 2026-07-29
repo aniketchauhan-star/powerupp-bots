@@ -81,7 +81,7 @@
     "SquareHollow.webp", "TapPanel.svg", "TappedCutButton.webp",
     "TriangularHollowLeft.webp", "TriangularHollowRight.webp",
     "TryAgainButton.webp", "VerticalRectangleHollow.webp", "cutPanel.svg",
-    "happyPinkBot.webp", "instructionPannel.webp", "laserlight.webp",
+    "happyPinkBot.webp", "image.png", "instructionPannel.webp", "laserlight.webp",
     "leftpanel.svg", "nextButton.webp", "playbtn.webp"
   ].map(function (n) { return "assets/" + n; });
 
