@@ -912,17 +912,14 @@ function fitScale() {
   // mobile URL bar), which is why the reservation below needs no vh/dvh maths.
   const W = window.innerWidth, H = window.innerHeight;
   const m = navMetrics();
-  // The arrows now straddle the book's OWN bottom corners (see .corner-arrow), so
-  // the side gutter only has to clear the half of each button that hangs outside
-  // the book — not a whole button plus a gap. Both sides are subtracted so the
-  // (centred) book stays symmetrical, and the widest side wins.
-  const gutter = Math.max(m.left, m.right) + m.btn / 2;
+  // Side gutter = safe edge + the button + the minimum clear gap. Both sides are
+  // subtracted so the (centred) book stays symmetrical, and the widest side wins.
+  const gutter = Math.max(m.left + m.btn + m.gap, m.right + m.btn + m.gap);
   const availW = Math.min(W * 0.88, W - 2 * gutter);   // soft cap, then the hard reservation
-  // Vertical is where the arrows live now: a full button + the clear gap has to
-  // fit BELOW the book, on top of the safe edge. Subtracted from both ends so the
-  // book stays vertically centred — the BOOK shrinks so the arrow row always has
-  // room, never the other way round.
-  const availH = Math.min(H * 0.80, H - 2 * (Math.max(m.top, m.bottom) + m.btn + m.gap));
+  // Vertical: the arrows live in the SIDE gutters, so the gutter above is what
+  // keeps them off the book — no vertical reservation is needed for them. Only
+  // the safe edge is kept clear top and bottom.
+  const availH = Math.min(H * 0.80, H - 2 * Math.max(m.top, m.bottom));
   const s = Math.max(0.05, Math.min(availW / 1280, availH / 720));   // never collapse to 0
   flipScaleEl.style.setProperty("--book-scale", s.toFixed(4));
   publishBookBox(s);
