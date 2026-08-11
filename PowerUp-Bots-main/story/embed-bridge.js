@@ -7,10 +7,18 @@
       parked overlay to true fullscreen. Registered in the CAPTURE phase: the
       game's own (bubble-phase) click handler sets state.locked synchronously,
       so a later bubble listener would see the button already locked and never
-      fire. Completion needs no bridge — the game's own completeGame() already
-      posts {type:"activity_complete"} (after the final round's "Yay!" voice-over
-      has ended and the success Next button was tapped), which the flipbook maps
-      to celebrate → shrink → auto-advance.
+      fire. The game's own completeGame() already posts {type:"activity_complete"}
+      (after the final round's "Yay!" voice-over has ended and the success Next
+      button was tapped) — the flipbook keeps the celebration screen up on that.
+
+   1b. FINISH HANDSHAKE — the "Bots Powered Up!" end card's green Next
+      (#finishButton) restarts the game when it runs standalone (finishGame()).
+      Inside the flipbook that is wrong: it is the reader's "go on with the
+      story" button. Captured here BEFORE the game's own handler, cancelled
+      (stopImmediatePropagation + preventDefault) and reported to the host as
+      {source:"lbd", type:"lbd-finish"} → the flipbook shrinks the game back
+      into the page and turns to the next page. Standalone: bridge is inert, so
+      the button keeps its original replay behaviour.
 
    2. IDLE CHUNKED ASSET PRELOADER — the game paints sprites via <img> swaps and
       CSS, so assets for screens that aren't up yet are NOT fetched until first
@@ -58,6 +66,21 @@
       if (!playBtn.classList.contains("play-ready")) return;
       if (window.state && window.state.locked) return;
       post("lbd-start");
+    }, true);
+  }
+
+  /* ── 1b. FINISH HANDSHAKE (capture phase — see header) ───────────────────── */
+  // The end card's Next: tell the host to move the story on instead of letting
+  // the game restart itself. Guarded on the end card actually being on screen.
+  var finishBtn = document.getElementById("finishButton");
+  var completeStage = document.getElementById("completeStage");
+  if (finishBtn) {
+    finishBtn.addEventListener("click", function (e) {
+      if (completeStage && completeStage.classList.contains("hidden")) return;  // not the end card
+      e.preventDefault();
+      e.stopImmediatePropagation();          // cancel the game's own finishGame() restart
+      try { if (typeof window.sndTap === "function") window.sndTap(); } catch (_) { }  // keep the tap feedback
+      post("lbd-finish");
     }, true);
   }
 

@@ -719,8 +719,11 @@ const replayBtn   = document.getElementById("replayBtn");   // lives on the THE 
    • start    : the game posts {source:"lbd", type:"lbd-start"} (via its
                 embed-bridge.js) → we expand the overlay to fill the whole screen.
    • end      : the game posts {type:"activity_complete"} from its own
-                completeGame() → we let the celebration show, then shrink the
-                overlay back into the page and auto-flip to the next page.
+                completeGame() → the "Bots Powered Up!" end card STAYS on screen
+                with its own big green NEXT. Tapping it posts "lbd-finish" (the
+                bridge cancels the game's replay handler) → we shrink the overlay
+                back into the page and turn to the next page. The book never
+                turns this page by itself — the reader always taps.
    ========================================================================== */
 const lbdStage = document.getElementById("lbdStage");
 const lbdFrame = document.getElementById("lbdFrame");
@@ -728,8 +731,11 @@ let lbdFullscreen = false;   // is the overlay expanded to full screen right now
 let lbdStarted    = false;   // has the child tapped Start at least once this visit?
 let lbdWasOn      = false;   // was the overlay showing on the previous refresh?
 let lbdExiting    = false;   // guard so "complete" only advances once
-let lbdAutoExitTimer = null; // pending "celebration shown → auto-advance" timer
-const LBD_CELEBRATE_MS = 3600;  // let the "Bots Powered Up!" screen show before auto-advancing
+let lbdAutoExitTimer = null; // safety: "end card left untapped → come back into the page" timer
+// The end card is NOT on a timer any more — it waits for its own Next button.
+// This is only a rescue for a reader who wanders off, and it just returns the
+// game to page size (revealing the book's Next arrow); it never turns the page.
+const LBD_FINISH_IDLE_MS = 60000;
 
 // Show the blurred pre-LBD backdrop inside the frame while the game is loading
 // (and while it's unloaded) so there is no dark flash — it matches the game's
@@ -802,7 +808,7 @@ function updateLbdOverlay() {
     lbdStage.setAttribute("aria-hidden", "false");
     lbdWasOn = true;
     lbdExiting = false;                   // fresh arrival → a future "complete" may advance again
-    clearTimeout(lbdAutoExitTimer);       // clear any stale auto-advance from a previous visit
+    clearTimeout(lbdAutoExitTimer);       // clear any stale rescue timer from a previous visit
     // The book's theme keeps playing under the parked (silent) title screen; it
     // pauses when the game starts its own copy of the theme (see lbd-start).
   } else if (!lbdFullscreen) {           // never hide mid-game (we can't leave while fullscreen)
@@ -810,24 +816,28 @@ function updateLbdOverlay() {
     lbdStage.setAttribute("aria-hidden", "true");
     if (lbdWasOn) {
       lbdWasOn = false;
-      clearTimeout(lbdAutoExitTimer);     // drop any pending auto-advance
+      clearTimeout(lbdAutoExitTimer);     // drop any pending rescue timer
       resetLbd();                         // kill game audio instantly + silent re-warm for revisits
       if (opened && ready && !muted) playBgMusic();  // resume the book's music (not while closing to the cover)
     }
   }
 }
-// Game finished (or the temporary Skip was tapped): come back into the page, then
-// automatically turn to the next page.
-function exitLbd() {
+// Come back out of the fullscreen game into the page, and open its Next gate.
+//   exitLbd(true)  — the reader ASKED to go on (they tapped the end card's Next,
+//                    or a skip flow fired): shrink, then turn the page.
+//   exitLbd(false) — just come back into the page and REVEAL the Next arrow; the
+//                    page turns only when the reader taps it.
+// Nothing here ever advances on a timer: the story moves on a tap, never on its own.
+function exitLbd(advance) {
   if (lbdExiting) return;
   lbdExiting = true;
-  clearTimeout(lbdAutoExitTimer);         // this exit supersedes any pending auto-advance
+  clearTimeout(lbdAutoExitTimer);         // this exit supersedes any pending rescue
   setLbdFullscreen(false);                // shrink the game back into the page
   setTimeout(function () {
     lbdExiting = false;
     if (flipped !== LBD_INDEX) return;
-    unlockNext(LBD_INDEX);                // the game is FINISHED — open its Next gate…
-    goNext();                             // …and auto-advance to the next story page
+    unlockNext(LBD_INDEX);                // the game is FINISHED — Next appears (+ glow-pulse)
+    if (advance) goNext();                // …and, on an explicit tap, turn to the next page
   }, 470);                                // just after the shrink transition (.4s)
 }
 // Listen for the game's messages.
@@ -835,8 +845,15 @@ function exitLbd() {
 //                        embed-bridge.js, capture-phase) → smoothly expand the
 //                        parked overlay to true fullscreen.
 //   • activity_complete→ the game finished all rounds (its own completeGame()).
-//                        Let the happy-bots celebration show for a beat, then
-//                        shrink the game away + auto-turn to the next page.
+//                        The "Bots Powered Up!" end card — which carries the
+//                        game's own big green NEXT — stays full screen. We do
+//                        NOT shrink or advance on a timer; the reader reads the
+//                        celebration for as long as they like. (A 60s rescue
+//                        timer only brings the game back to page size, where the
+//                        book's own Next arrow is waiting.)
+//   • lbd-finish       → the end card's NEXT was tapped (cancelled by the game's
+//                        embed-bridge.js so it can't restart the game): shrink
+//                        the game away and turn to the next story page.
 //   • lbd-complete     → immediate-exit path (kept for compatibility/skip flows).
 window.addEventListener("message", function (e) {
   const d = e && e.data;
@@ -850,10 +867,17 @@ window.addEventListener("message", function (e) {
     try { bgMusic.pause(); } catch (_) {}
     setLbdFullscreen(true);
   }
-  else if (t === "lbd-complete") { clearTimeout(lbdAutoExitTimer); exitLbd(); }
-  else if (t === "activity_complete" && lbdFullscreen) {
+  else if (d.source === "lbd" && t === "lbd-finish") {
+    if (!lbdStage || !lbdStage.classList.contains("visible")) return;  // only from the on-screen game
     clearTimeout(lbdAutoExitTimer);
-    lbdAutoExitTimer = setTimeout(exitLbd, LBD_CELEBRATE_MS);
+    exitLbd(true);                        // the reader tapped Next → shrink + turn the page
+  }
+  else if (t === "lbd-complete") { clearTimeout(lbdAutoExitTimer); exitLbd(true); }
+  else if (t === "activity_complete" && lbdFullscreen) {
+    // Finished — but the page turns only on a tap. Leave the end card up and
+    // arm the rescue that merely returns the game to page size.
+    clearTimeout(lbdAutoExitTimer);
+    lbdAutoExitTimer = setTimeout(function () { exitLbd(false); }, LBD_FINISH_IDLE_MS);
   }
 });
 
@@ -1039,6 +1063,13 @@ function refreshMedia() {
   const cur = leaves[idx];
   const v = cur && cur.querySelector("video.page-media");
   if (v) {
+    // EVERY ARRIVAL PLAYS FROM THE TOP. Leaving a page only PAUSES its video —
+    // rewinding it there would flash frame 0 on the sheet that is still turning
+    // away — so a page left part-way through would come back holding that paused
+    // timestamp and resume from the middle. Rewind on ARRIVAL instead. Guarded on
+    // isNewArrival, so the flip-end "re-assert" call can't yank a video that is
+    // already playing back to the start.
+    if (isNewArrival) { try { v.currentTime = 0; } catch (_) {} }
     const delayMs = (pages[idx] && pages[idx].delay) ? pages[idx].delay : 0;
     if (delayMs > 0) {
       // Already playing this page, or already counting down for it → leave it alone
@@ -1138,6 +1169,7 @@ function goPrev() {
      • "hotspots" page  → until EVERY shape has been tapped and played.
      • "lbd" (game)     → until the game reports it is COMPLETE (see exitLbd);
                           there is no "watch it out" here, the reader must play.
+                          Completion only REVEALS Next — the reader taps it.
    Armed on every FIRST arrival at a page — but a page that has already been
    finished once is never re-gated (see `pageDone`), so going BACK to re-read
    an earlier page shows Back AND Next immediately: nobody is made to sit
